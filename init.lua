@@ -1,3 +1,4 @@
+-- Issue fixed
 size_editer = {}
 size_editer.priv = "size_edit"
 
@@ -63,6 +64,7 @@ function size_editer.set_player_size(name, size)
         jump = jump_boost,
         gravity = 1
     })
+
     
     local pos = player:get_pos()
     local node_below = minetest.get_node_or_nil({x=pos.x, y=pos.y-0.1, z=pos.z})
