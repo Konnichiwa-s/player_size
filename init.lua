@@ -27,28 +27,24 @@ function size_editer.set_player_size(name, size)
     meta:set_float("player_size", size)
 
     
-    player:set_properties({
-        visual_size = {
-            x = size,
-            y = size
-        }
-    })
-
+    local height = 1.7 * size
+    local eye_height = size_editer.default_props.eye_height * size
+    local step_height = 0.6 * size
     
-    local height = math.max(0.1, 1.7 * size)
+    
+    local half_width = 0.3 * size
     local collbox = {
-        -0.3 * size,
-        0.0,
-        -0.3 * size,
-        0.3 * size,
-        height,
-        0.3 * size
+        -half_width,  -- x1
+        0.0,          -- y1 (bottom)
+        -half_width,   -- z1
+        half_width,    -- x2
+        height,       -- y2 (top)
+        half_width    -- z2
     }
 
-    local eye_height = math.max(0.1, size_editer.default_props.eye_height * size)
-    local step_height = math.max(0.05, 0.6 * size)
-
+    
     player:set_properties({
+        visual_size = {x = size, y = size},
         collisionbox = collbox,
         eye_height = eye_height,
         stepheight = step_height
@@ -56,44 +52,54 @@ function size_editer.set_player_size(name, size)
 
     
     local jump_boost = 1.0
-if size < 1 then
-    jump_boost = 1.2 + (1 - size) * 0.8 
-elseif size > 1 then
-    jump_boost = math.max(0.5, 1.0 / size) 
-end
+    if size < 1 then
+        jump_boost = 1.2 + (1 - size) * 0.8 
+    elseif size > 1 then
+        jump_boost = math.max(0.5, 1.0 / size) 
+    end
 
-player:set_physics_override({
-    speed = math.max(0.2, size < 1 and size or 1 / size),
-    jump = jump_boost,
-    gravity = 1
-})
-
+    player:set_physics_override({
+        speed = math.max(0.2, size < 1 and size or 1 / size),
+        jump = jump_boost,
+        gravity = 1
+    })
+    
     local pos = player:get_pos()
-    pos.y = pos.y + 0.5
+    local node_below = minetest.get_node_or_nil({x=pos.x, y=pos.y-0.1, z=pos.z})
+    
+    if node_below and node_below.name ~= "air" and node_below.name ~= "ignore" then
+        
+        pos.y = math.floor(pos.y) + 0.1
+    else
+        
+        pos.y = pos.y + 0.1
+    end
+    
     player:set_pos(pos)
 
+    
     size_editer.size_change_effect(player)
 end
-
 
 function size_editer.size_change_effect(player)
     local pos = player:get_pos()
     pos.y = pos.y + 0.5
     for i = 1, 20 do
         minetest.after(i / 10, function()
-            minetest.add_particle({
-                pos = vector.new(pos.x, pos.y, pos.z),
-                velocity = vector.new(math.random() - 0.5, math.random() * 0.5, math.random() - 0.5),
-                acceleration = vector.new(0, -1, 0),
-                expirationtime = 1,
-                size = math.random(1, 3),
-                texture = "default_item_smoke.png",
-                glow = 5
-            })
+            if player and player:is_player() then
+                minetest.add_particle({
+                    pos = vector.new(pos.x, pos.y, pos.z),
+                    velocity = vector.new(math.random() - 0.5, math.random() * 0.5, math.random() - 0.5),
+                    acceleration = vector.new(0, -1, 0),
+                    expirationtime = 1,
+                    size = math.random(1, 3),
+                    texture = "default_item_smoke.png",
+                    glow = 5
+                })
+            end
         end)
     end
 end
-
 
 minetest.register_on_joinplayer(function(player)
     local name = player:get_player_name()
@@ -105,7 +111,6 @@ minetest.register_on_joinplayer(function(player)
         end)
     end
 end)
-
 
 minetest.register_chatcommand("setsize", {
     params = "<size>",
@@ -167,7 +172,6 @@ minetest.register_chatcommand("large", {
         return true, "Size increased to " .. new_size
     end
 })
-
 
 minetest.register_chatcommand("super_small", {
     description = "Become very small (size 0.05)",
